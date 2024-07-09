@@ -59,29 +59,6 @@ python vlog_query.py --conf config.json
 - `api_url`: vlogs 的 查询接口。
 - `_msg`: 消息字段,代码日志打印的消息。
 
-## 示例
-
-### 配置文件示例
-
-```json
-{
-    "RequestPath": ["example_path"],
-    "topic": "example_topic",
-    "request_X-Ht-Uid": ["example_uid"],
-    "OriginStatus": ["example_status"],
-    "limit": 1,
-    "last_duration": "5m",
-    "fields": ["field1", "field2"],
-    "highlight_fields": ["RequestPath", "topic", "request_X-Ht-Uid", "OriginStatus", "caller", "_msg", "custom_field"],
-    "api_url": "https://vlogs.com/select/logsql/query"
-}
-```
-
-### 运行脚本
-
-```sh
-python vlog_query.py --conf config.json
-```
 
 ## 高亮字段
 
