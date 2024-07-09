@@ -65,7 +65,7 @@ python vlog_query.py --conf config.json
 ```json
 {
     "RequestPath": ["example_path"],
-    "topic": "example_topic"],
+    "topic": "example_topic",
     "request_X-Ht-Uid": ["example_uid"],
     "OriginStatus": ["example_status"],
     "limit": 1,
