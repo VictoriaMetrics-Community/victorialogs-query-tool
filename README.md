@@ -1,6 +1,8 @@
 
 # Vlog Query Tool
 
+[简体中文](README.zh.md) [English](README.md)
+
 ![](images/2024-07-09-15-48-06.png)
 
 The Vlog Query Tool is a utility to query [vlogs (victorialogs)](https://docs.victoriametrics.com/victorialogs/) using a JSON configuration file and print the results in the terminal. This tool supports highlighting specified fields, formatting JSON output, copying to the clipboard when querying a single record, and using the Rich library for beautiful terminal output.
