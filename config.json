@@ -1,0 +1,16 @@
+{
+  "topic": "prod*",
+  "_stream": {
+    "service": "your_service_name"
+  },
+  "caller": "*",
+  "_msg": ["*"],
+  "fields": ["_msg", "service", "_time", "service", "caller"],
+  "customize": {},
+  "limit": 10,
+  "start_datetime": "2024-06-30T11:25:13+08:00",
+  "end_datetime": "2024-06-30T11:46:13+08:00",
+  "last_duration": "5m",
+  "highlight_fields": ["_msg", "_time"],
+  "api_url": "your_domain/select/logsql/query"
+}
