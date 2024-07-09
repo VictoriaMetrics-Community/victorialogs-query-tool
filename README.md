@@ -58,29 +58,6 @@ python vlog_query.py --conf config.json
 - `api_url`: The query interface for vlogs.
 - `_msg`: Message field, the log message printed by the code.
 
-## Example
-
-### Configuration File Example
-
-```json
-{
-    "RequestPath": ["example_path"],
-    "topic": "example_topic",
-    "request_X-Ht-Uid": ["example_uid"],
-    "OriginStatus": ["example_status"],
-    "limit": 1,
-    "last_duration": "5m",
-    "fields": ["field1", "field2"],
-    "highlight_fields": ["RequestPath", "topic", "request_X-Ht-Uid", "OriginStatus", "caller", "_msg", "custom_field"],
-    "api_url": "https://vlogs.com/select/logsql/query"
-}
-```
-
-### Running the Script
-
-```sh
-python vlog_query.py --conf config.json
-```
 
 ## Highlight Fields
 
