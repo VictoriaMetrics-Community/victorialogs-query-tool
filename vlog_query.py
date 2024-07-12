@@ -41,7 +41,7 @@ def parse_duration(duration_str):
     else:
         raise ValueError(f"Unknown duration unit: {unit}")
 
-def build_query(config):
+def build_query(config, time_sort_order):
     query_parts = []
     
     if "RequestPath" in config and config["RequestPath"]:
@@ -84,7 +84,7 @@ def build_query(config):
         fields_str = ', '.join(config["fields"])
         query_parts.append(f'| fields {fields_str}')
     
-    query_parts.append('| sort by (_time) desc')
+    query_parts.append(f'| sort by (_time) {time_sort_order}')
     
     return ' '.join(query_parts)
 
@@ -109,36 +109,43 @@ def main():
         print("Error: API URL (api_url) is required in the configuration file.")
         return
 
+    # 获取排序方式
+    time_sort_order = config.get("time_sort_order", "desc")
+
     # 构建查询字符串
-    query = build_query(config)
+    query = build_query(config, time_sort_order)
     print(f"Query: {query}")
+    
     # 获取查询限制
     limit = config.get("limit", 1000)  # 默认值为1000
-
-    # 构建 POST 请求的数据
-    data = {
-        'query': query,
-        'limit': limit
-    }
 
     # 处理 last_duration 或者 start_datetime 和 end_datetime
     if "last_duration" in config and config["last_duration"]:
         duration = parse_duration(config["last_duration"])
         now = datetime.now().astimezone()
         start_datetime = int((now - duration).timestamp())
-        data['start'] = start_datetime
+        end_datetime = int(now.timestamp())
     else:
         start_datetime = get_timestamp(config["start_datetime"])
         end_datetime = get_timestamp(config["end_datetime"])
-        data['start'] = start_datetime
-        data['end'] = end_datetime
 
-    # 执行 HTTP POST 请求
-    response = requests.post(
-        api_url,
-        headers={'Content-Type': 'application/x-www-form-urlencoded'},
-        data=data
-    )
+    # 检查时间间隔是否超过1小时
+    total_duration = end_datetime - start_datetime
+    if total_duration > 3600:
+        segments = []
+        current_start = start_datetime
+        while current_start < end_datetime:
+            current_end = min(current_start + 3600, end_datetime)
+            segments.append((current_start, current_end))
+            current_start = current_end
+
+        if time_sort_order == "desc":
+            segments = reversed(segments)
+    else:
+        segments = [(start_datetime, end_datetime)]
+
+    # 初始化结果计数
+    result_count = 0
 
     # 处理并美化输出 JSON Lines 数据
     custom_theme = Theme({
@@ -153,25 +160,44 @@ def main():
     # 获取需要高亮的字段
     fields_to_highlight = config.get("highlight_fields", [])
     highlighter = JSONHighlighter(fields_to_highlight)
-    
-    data = response.text
-    json_lines = data.splitlines()
-    for line in json_lines:
-        try:
-            parsed_data = json.loads(line)
-            if limit == 1:
-                # 打印漂亮的格式化 JSON
-                json_str = json.dumps(parsed_data, indent=4)
-                # 复制到系统剪贴板
-                pyperclip.copy(json_str)
-                syntax = Syntax(json_str, "json", theme="monokai", line_numbers=True)
-                console.print(syntax)
-            else:
-                # 单行显示 JSON
-                json_str = json.dumps(parsed_data)
-                console.print(highlighter(json_str))
-        except json.JSONDecodeError:
-            console.print(f"[red]Error decoding JSON:[/red] {line}")
+
+    for start, end in segments:
+        data = {
+            'query': query,
+            'limit': limit,
+            'start': start,
+            'end': end
+        }
+
+        # 执行 HTTP POST 请求
+        response = requests.post(
+            api_url,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            data=data
+        )
+
+        data = response.text
+        json_lines = data.splitlines()
+        for line in json_lines:
+            try:
+                parsed_data = json.loads(line)
+                result_count += 1
+                if limit == 1:
+                    # 打印漂亮的格式化 JSON
+                    json_str = json.dumps(parsed_data, indent=4)
+                    # 复制到系统剪贴板
+                    pyperclip.copy(json_str)
+                    syntax = Syntax(json_str, "json", theme="monokai", line_numbers=True)
+                    console.print(syntax)
+                else:
+                    # 单行显示 JSON
+                    json_str = json.dumps(parsed_data)
+                    console.print(highlighter(json_str))
+                
+                if result_count >= limit:
+                    return
+            except json.JSONDecodeError:
+                console.print(f"[red]Error decoding JSON:[/red] {line}")
 
 if __name__ == "__main__":
     main()
