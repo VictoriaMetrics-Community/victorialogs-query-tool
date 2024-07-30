@@ -1,6 +1,7 @@
 import requests
 from datetime import datetime, timedelta
 import json
+import toml
 import argparse
 import pyperclip
 from rich.console import Console
@@ -63,8 +64,14 @@ def build_query(config, time_sort_order):
     
     if "_stream" in config and config["_stream"]:
         stream_parts = []
-        for key, value in config["_stream"].items():
-            stream_parts.append(f'{key}="{value}"')
+        # 处理 _stream 作为列表或字典的情况
+        if isinstance(config["_stream"], list):
+            for stream_dict in config["_stream"]:
+                for key, value in stream_dict.items():
+                    stream_parts.append(f'{key}="{value}"')
+        elif isinstance(config["_stream"], dict):
+            for key, value in config["_stream"].items():
+                stream_parts.append(f'{key}="{value}"')
         query_parts.append(f'_stream:{{{" , ".join(stream_parts)}}}')
     
     query_parts.append('level:*')
@@ -92,6 +99,8 @@ def main():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--conf', type=str, required=True,
                         help='the configuration file to use')
+    parser.add_argument('--only_print', action='store_true',
+                        help='only print the query and request parameters without making the request')
     args = parser.parse_args()
 
     # 检查是否传递了配置文件参数
@@ -99,9 +108,19 @@ def main():
         print("Error: Configuration file (--conf) is required.")
         return
 
-    # 读取配置文件
-    with open(args.conf, 'r') as f:
-        config = json.load(f)
+    # 根据文件后缀选择解析器
+    if args.conf.endswith('.json'):
+        with open(args.conf, 'r') as f:
+            config = json.load(f)
+    elif args.conf.endswith('.toml'):
+        with open(args.conf, 'r') as f:
+            config = toml.load(f)
+            # 修正 _stream 的解析
+            if "stream" in config:
+                config["_stream"] = config.pop("stream")
+    else:
+        print("Error: Unsupported configuration file format. Please use JSON or TOML.")
+        return
 
     # 检查是否提供了 API URL
     api_url = config.get("api_url")
@@ -112,9 +131,11 @@ def main():
     # 获取排序方式
     time_sort_order = config.get("time_sort_order", "desc")
 
-    # 构建查询字符串
-    query = build_query(config, time_sort_order)
-    print(f"Query: {query}")
+    # 检查是否有自定义查询语句
+    query = config.get("query")
+    if not query:
+        # 构建查询字符串
+        query = build_query(config, time_sort_order)
     
     # 获取查询限制
     limit = config.get("limit", 1000)  # 默认值为1000
@@ -144,6 +165,14 @@ def main():
     else:
         segments = [(start_datetime, end_datetime)]
 
+    # 打印查询和请求参数
+    print(f"Query: {query}")
+    print(f"Request Parameters: limit={limit}, start={start_datetime}, end={end_datetime}")
+    
+    if args.only_print:
+        query_string = f"query = '{query}'"
+        pyperclip.copy(query_string)
+        return
     # 初始化结果计数
     result_count = 0
 

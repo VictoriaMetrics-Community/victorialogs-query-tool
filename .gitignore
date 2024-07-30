@@ -1,3 +1,5 @@
 .vscode
 business.json
 traefik.json
+*.toml
+*.json
