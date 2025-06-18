@@ -1,0 +1,11 @@
+curl 'https://vlogs.hellotalk8.com/select/logsql/query' \
+  -H 'AccountID: 0' \
+  -H 'sec-ch-ua-platform: "Linux"' \
+  -H 'Referer: https://vlogs.hellotalk8.com/select/vmui/?' \
+  -H 'sec-ch-ua: "Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' \
+  -H 'Accept: application/stream+json' \
+  -H 'Content-Type: application/x-www-form-urlencoded;charset=UTF-8' \
+  -H 'ProjectID: 0' \
+  --data-raw 'query=UpdateFixedRecommendSort&limit=50&start=2025-03-03T07%3A42%3A22.125Z&end=2025-03-03T07%3A47%3A22.125Z'
