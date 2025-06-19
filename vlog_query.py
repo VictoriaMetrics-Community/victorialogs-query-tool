@@ -9,6 +9,7 @@ from rich.highlighter import Highlighter
 from rich.theme import Theme
 from rich.syntax import Syntax
 
+
 class JSONHighlighter(Highlighter):
     def __init__(self, fields_to_highlight):
         super().__init__()
@@ -18,21 +19,24 @@ class JSONHighlighter(Highlighter):
         """Highlight specific fields in JSON."""
         for field in self.fields_to_highlight:
             text.highlight_regex(f'"{field}"', "field_name")
-            text.highlight_regex(f'(?<="{field}": )("[^"]*"|\d+)', "field_value")
+            text.highlight_regex(
+                f'(?<="{field}": )("[^"]*"|\d+)', "field_value")
         # Highlight the level field
         text.highlight_regex(r'"level":\s*"error"', "level_error")
         text.highlight_regex(r'"level":\s*"warning"', "level_warning")
         text.highlight_regex(r'"level":\s*"info"', "level_info")
 
+
 def get_timestamp(datetime_str):
     dt = datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M:%S%z")
     return int(dt.timestamp())
+
 
 def parse_duration(duration_str):
     """Parse duration string like '5m' into a timedelta object."""
     unit = duration_str[-1]
     amount = int(duration_str[:-1])
-    
+
     if unit == 'm':
         return timedelta(minutes=amount)
     elif unit == 'h':
@@ -42,26 +46,27 @@ def parse_duration(duration_str):
     else:
         raise ValueError(f"Unknown duration unit: {unit}")
 
+
 def build_query(config, time_sort_order):
     query_parts = []
-    
+
     if "RequestPath" in config and config["RequestPath"]:
         for path in config["RequestPath"]:
             query_parts.append(f'RequestPath:{path}')
-    
+
     if "topic" in config and config["topic"]:
         query_parts.append(f'topic:{config["topic"]}')
-    
+
     if "request_X-Ht-Uid" in config and config["request_X-Ht-Uid"]:
         for uid in config["request_X-Ht-Uid"]:
             query_parts.append(f'request_X-Ht-Uid:{uid}')
-    
+
     if "OriginStatus" in config and config["OriginStatus"]:
         for status in config["OriginStatus"]:
             query_parts.append(f'OriginStatus:{status}')
-    
+
     query_parts.append('_time:20d')
-    
+
     if "_stream" in config and config["_stream"]:
         stream_parts = []
         # 处理 _stream 作为列表或字典的情况
@@ -73,27 +78,29 @@ def build_query(config, time_sort_order):
             for key, value in config["_stream"].items():
                 stream_parts.append(f'{key}="{value}"')
         query_parts.append(f'_stream:{{{" , ".join(stream_parts)}}}')
-    
+
     query_parts.append('level:*')
-    
+
     if "_msg" in config and config["_msg"]:
         for msg in config["_msg"]:
             query_parts.append(f'_msg:{msg}')
-    
+
     if "caller" in config and config["caller"]:
         query_parts.append(f'caller:{config["caller"]}')
-    
+
     if "customize" in config and config["customize"]:
+        # 将 customize 中的所有字段转换为 _msg 格式
         for key, value in config["customize"].items():
-            query_parts.append(f'{key}:{value}')
-    
+            query_parts.append(f'_msg:{key}={value}')
+
     if "fields" in config and config["fields"]:
         fields_str = ', '.join(config["fields"])
         query_parts.append(f'| fields {fields_str}')
-    
+
     query_parts.append(f'| sort by (_time) {time_sort_order}')
-    
+
     return ' '.join(query_parts)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -136,7 +143,7 @@ def main():
     if not query:
         # 构建查询字符串
         query = build_query(config, time_sort_order)
-    
+
     # 获取查询限制
     limit = config.get("limit", 1000)  # 默认值为1000
 
@@ -167,8 +174,9 @@ def main():
 
     # 打印查询和请求参数
     print(f"Query: {query}")
-    print(f"Request Parameters: limit={limit}, start={start_datetime}, end={end_datetime}")
-    
+    print(
+        f"Request Parameters: limit={limit}, start={start_datetime}, end={end_datetime}")
+
     if args.only_print:
         query_string = f"query = '{query}'"
         pyperclip.copy(query_string)
@@ -184,8 +192,9 @@ def main():
         "level_warning": "bold yellow",
         "level_info": "bold green"
     })
-    console = Console(theme=custom_theme, style="light_slate_grey")  # 设置默认颜色为淡白色
-    
+    console = Console(theme=custom_theme,
+                      style="light_slate_grey")  # 设置默认颜色为淡白色
+
     # 获取需要高亮的字段
     fields_to_highlight = config.get("highlight_fields", [])
     highlighter = JSONHighlighter(fields_to_highlight)
@@ -216,18 +225,19 @@ def main():
                     json_str = json.dumps(parsed_data, indent=4)
                     # 复制到系统剪贴板
                     pyperclip.copy(json_str)
-                    syntax = Syntax(json_str, "json", theme="monokai", line_numbers=True)
+                    syntax = Syntax(json_str, "json",
+                                    theme="monokai", line_numbers=True)
                     console.print(syntax)
                 else:
                     # 单行显示 JSON
                     json_str = json.dumps(parsed_data)
                     console.print(highlighter(json_str))
-                
+
                 if result_count >= limit:
                     return
             except json.JSONDecodeError:
                 console.print(f"[red]Error decoding JSON:[/red] {line}")
 
+
 if __name__ == "__main__":
     main()
-
